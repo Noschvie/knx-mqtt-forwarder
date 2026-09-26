@@ -1,0 +1,19 @@
+{
+  "name": "knx-mqtt-forwarder",
+  "version": "0.1.0",
+  "description": "Forwarder zwischen semantic-knx-gateway (KNX IoT 3rd Party API) und MQTT (EMQX). State-Feed (retained) + Bus-Feed (Write/Response-Events).",
+  "type": "module",
+  "license": "CC-BY-NC-SA-4.0",
+  "author": "Noschvie",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mqtt": "^5.10.1"
+  }
+}
