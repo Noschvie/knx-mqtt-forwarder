@@ -52,4 +52,4 @@ docker compose up -d --build
 
 ## Lizenz
 
-CC BY-NC-SA 4.0
+GNU AGPL v3
