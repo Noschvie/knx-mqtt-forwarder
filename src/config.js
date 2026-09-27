@@ -13,9 +13,21 @@ function optional(name, fallback) {
   return value === undefined || value === '' ? fallback : value;
 }
 
+// KNX IoT 3rd Party API Basispfad (OpenAPI-Server-Variable "path").
+// Bewusst als Code-Konstante statt Env-Var: eine API-Versionsänderung ist ein
+// Code-/Kompatibilitäts-Thema, kein Deployment-Parameter. /oauth/access liegt
+// bei semantic-knx-gateway NICHT unter diesem Präfix (siehe knx_subscribe.be),
+// daher separat von KNX_API_PATH gehalten.
+export const KNX_API_PATH = '/api/v2';
+
+const knxHostUrl = required('KNX_API_BASE_URL').replace(/\/+$/, '');
+
 export const config = {
   knx: {
-    baseUrl: required('KNX_API_BASE_URL').replace(/\/+$/, ''),
+    // Host-Root ohne Pfad, z. B. "https://eibesthal.local:3000"
+    hostUrl: knxHostUrl,
+    // Basis-URL für Resource-Endpoints (/datapoints, /subscriptions, ...)
+    resourceBaseUrl: `${knxHostUrl}${KNX_API_PATH}`,
     clientId: required('KNX_OAUTH_CLIENT_ID'),
     clientSecret: required('KNX_OAUTH_CLIENT_SECRET'),
     subscriptionTargetType: optional('KNX_SUBSCRIPTION_TARGET_TYPE', 'node'),

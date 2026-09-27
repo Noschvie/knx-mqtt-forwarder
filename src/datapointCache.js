@@ -27,7 +27,7 @@ function extractDpt(item) {
 }
 
 async function fetchPage(token, pageNumber) {
-  const url = new URL(`${config.knx.baseUrl}/datapoints`);
+  const url = new URL(`${config.knx.resourceBaseUrl}/datapoints`);
   url.searchParams.set('page[number]', String(pageNumber));
   url.searchParams.set('page[size]', String(PAGE_SIZE));
 

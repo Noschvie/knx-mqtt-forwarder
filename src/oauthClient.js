@@ -14,7 +14,7 @@ function basicAuthHeader() {
 }
 
 async function requestToken(scope) {
-  const url = `${config.knx.baseUrl}/oauth/access`;
+  const url = `${config.knx.hostUrl}/oauth/access`;
   const body = new URLSearchParams({ grant_type: 'client_credentials', scope });
 
   const res = await fetch(url, {

@@ -32,7 +32,7 @@ function subscriptionRequestBody() {
 
 async function request(method, path, body) {
   const token = await getAccessToken('manage');
-  const res = await fetch(`${config.knx.baseUrl}${path}`, {
+  const res = await fetch(`${config.knx.resourceBaseUrl}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
