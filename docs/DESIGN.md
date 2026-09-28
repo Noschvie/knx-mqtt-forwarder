@@ -16,12 +16,12 @@ können, ohne eine eigene REST/OAuth-Integration bauen zu müssen. Grundlage ist
 
 ```
 ┌─────────────────────┐      HTTP-Callback       ┌──────────────────────┐      MQTT Publish      ┌──────────┐
-│ semantic-knx-gateway │ ───────────────────────▶ │ knx-mqtt-forwarder    │ ──────────────────────▶ │  EMQX    │
-│  (KNX IoT API v2.1)  │   POST /callback          │ (eigener Service)     │                         │  Broker  │
-└─────────────────────┘                            └──────────────────────┘                         └──────────┘
+│ semantic-knx-gateway │ ──────────────────────▶ │ knx-mqtt-forwarder   │ ─────────────────────▶ │  EMQX    │
+│  (KNX IoT API v2.1)  │   POST /callback        │ (eigener Service)    │                        │  Broker  │
+└─────────────────────┘                          └──────────────────────┘                        └──────────┘
 ```
 
-Der Forwarder ist ein **eigenständiger Service**, analog zu `knx-spectrum-gateway` — lose gekoppelt, kein
+Der Forwarder ist ein **eigenständiger Service**, lose gekoppelt, kein
 Eingriff in den Southbound-Teil des Gateways nötig. Er nutzt ausschließlich die bestehende KNX IoT API
 (Subscriptions + HTTP-Callback), keinen direkten Bus-Zugriff.
 
@@ -89,7 +89,7 @@ ist (sollte in der Praxis kaum vorkommen, da die Subscription ohnehin nur bekann
 ## 6. Payload-Format
 
 Einheitliches JSON-Payload für beide Feeds, angelehnt an die bestehende Telegram-Struktur aus dem
-Spectrum-KNX-Kontext:
+KNX-Kontext:
 
 ```json
 {
