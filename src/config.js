@@ -21,6 +21,7 @@ function optional(name, fallback) {
 export const KNX_API_PATH = '/api/v2';
 
 const knxHostUrl = required('KNX_API_BASE_URL').replace(/\/+$/, '');
+const callbackPublicUrl = required('CALLBACK_PUBLIC_URL');
 
 export const config = {
   knx: {
@@ -37,8 +38,12 @@ export const config = {
   callback: {
     host: optional('CALLBACK_HOST', '0.0.0.0'),
     port: Number(optional('CALLBACK_PORT', '8090')),
-    path: optional('CALLBACK_PATH', '/callback'),
-    publicUrl: required('CALLBACK_PUBLIC_URL'),
+    // Lokaler Pfad, auf dem der HTTP-Server lauscht. Default: aus
+    // CALLBACK_PUBLIC_URL abgeleitet (im Normalfall identisch). Nur explizit
+    // via CALLBACK_PATH überschreiben, wenn ein vorgeschalteter Reverse Proxy
+    // den Pfad umschreibt (öffentlicher Pfad != interner Pfad) — siehe README.
+    path: optional('CALLBACK_PATH', new URL(callbackPublicUrl).pathname || '/callback'),
+    publicUrl: callbackPublicUrl,
     secret: required('CALLBACK_SECRET'),
   },
   mqtt: {
