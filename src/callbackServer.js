@@ -15,6 +15,10 @@ function readRawBody(req) {
 }
 
 function handleEntry(entry) {
+    logger.info(
+    `KNX Event: type=${entry.type} id=${entry.id} attributes=${JSON.stringify(entry.attributes ?? {})}`,
+  );
+
   if (entry.type !== 'datapoint') {
     // node/installation-Events werden in v1 nicht auf MQTT gespiegelt,
     // siehe Design-Dokument Abschnitt 3.
@@ -52,6 +56,11 @@ export function startCallbackServer() {
       res.writeHead(400).end();
       return;
     }
+
+    logger.info('=== KNX CALLBACK EMPFANGEN ===');
+    logger.info(`Request: ${req.method} ${req.url}`);
+    logger.info(`Headers: ${JSON.stringify(req.headers)}`);
+    logger.info(`Body: ${rawBody.toString('utf8')}`);
 
     const { valid, reason } = verifyCallbackSignature({
       method: req.method,
