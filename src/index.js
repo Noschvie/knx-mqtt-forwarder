@@ -1,7 +1,9 @@
+import { config } from './config.js';
 import { logger } from './logger.js';
 import { connectMqtt, disconnectMqtt } from './mqttPublisher.js';
 import { refreshDatapointCache } from './datapointCache.js';
 import { startCallbackServer } from './callbackServer.js';
+import { logNodeInfo, logInstallations } from './gatewayInfo.js';
 import { createSubscription, deleteSubscription } from './subscriptionManager.js';
 
 let httpServer = null;
@@ -13,6 +15,15 @@ async function start() {
   await connectMqtt();
   await refreshDatapointCache();
   httpServer = await startCallbackServer();
+
+  const nodeId = await logNodeInfo();
+  await logInstallations();
+
+  if (config.knx.subscriptionTargetType === 'node' && !config.knx.subscriptionTargetId && nodeId) {
+    logger.info(`Keine KNX_SUBSCRIPTION_TARGET_ID gesetzt, übernehme Node-ID aus /node: ${nodeId}`);
+    config.knx.subscriptionTargetId = nodeId;
+  }
+
   await createSubscription();
 
   logger.info('knx-mqtt-forwarder bereit.');
