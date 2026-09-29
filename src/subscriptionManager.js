@@ -4,54 +4,13 @@ import { logger } from './logger.js';
 
 let subscriptionId = null;
 let renewTimer = null;
+// Cache der Root-Location-IDs (Sites), damit nicht bei jedem Renewal erneut
+// GET /sites aufgerufen werden muss. Wird bei Bedarf (Mode "sites") einmalig
+// beim ersten createSubscription()-Aufruf befüllt.
+let cachedSiteIds = null;
 
-function subscriptionRequestBody() {
-  const targetId = config.knx.subscriptionTargetId;
-  const targetType = config.knx.subscriptionTargetType;
-
-  const data = {
-    type: 'subscription',
-    attributes: {
-      url: config.callback.publicUrl,
-      secret: config.callback.secret,
-      lifetime: config.knx.subscriptionLifetimeS,
-    },
-    relationships: {},
-  };
-
-  switch (targetType) {
-    case 'node':
-      data.relationships.subscriptionNode = {
-        data: {
-          id: targetId,
-          type: 'node',
-        },
-      };
-      break;
-
-    case 'installation':
-      data.relationships.subscriptionInstallations = {
-        data: [
-          {
-            id: targetId,
-            type: 'installation',
-          },
-        ],
-      };
-      break;
-
-    default:
-      throw new Error(
-        `Unsupported subscription target type: ${targetType}. ` +
-        `Expected "node" or "installation".`
-      );
-  }
-
-  return { data };
-}
-
-async function request(method, path, body) {
-  const token = await getAccessToken('manage');
+async function request(method, path, body, scope = 'manage') {
+  const token = await getAccessToken(scope);
   const res = await fetch(`${config.knx.resourceBaseUrl}${path}`, {
     method,
     headers: {
@@ -70,8 +29,54 @@ async function request(method, path, body) {
   return res.json().catch(() => null);
 }
 
+async function fetchSiteIds() {
+  const payload = await request('GET', '/sites', undefined, 'read');
+  const items = payload?.data ?? [];
+  const ids = items.map((item) => item.id);
+  logger.info(
+    `Sites für Datapoint-Subscription ermittelt (${ids.length}): ` +
+      items.map((item) => `${item.id} ("${item.attributes?.title ?? '?'}")`).join(', '),
+  );
+  if (ids.length === 0) {
+    logger.warn('GET /sites lieferte keine Root-Locations zurück — Subscription hätte keine Ziel-Items.');
+  }
+  return ids;
+}
+
+async function buildSubscriptionDatapointsItems() {
+  if (config.knx.subscriptionMode === 'sites') {
+    if (!cachedSiteIds) cachedSiteIds = await fetchSiteIds();
+    return cachedSiteIds.map((id) => ({ id, type: 'location', meta: { expand: true } }));
+  }
+
+  if (config.knx.subscriptionMode === 'location') {
+    return [{ id: config.knx.subscriptionTargetId, type: 'location', meta: { expand: true } }];
+  }
+
+  // 'datapoint'
+  return [{ id: config.knx.subscriptionTargetId, type: 'datapoint' }];
+}
+
+async function subscriptionRequestBody() {
+  const items = await buildSubscriptionDatapointsItems();
+
+  return {
+    data: {
+      type: 'subscription',
+      relationships: {
+        subscriptionDatapoints: { data: items },
+      },
+      attributes: {
+        url: config.callback.publicUrl,
+        secret: config.callback.secret,
+        lifetime: config.knx.subscriptionLifetimeS,
+      },
+    },
+  };
+}
+
 export async function createSubscription() {
-  const body = subscriptionRequestBody();
+  const body = await subscriptionRequestBody();
   const resp = await request('POST', '/subscriptions', body);
   subscriptionId = resp?.data?.id ?? null;
 
@@ -79,7 +84,7 @@ export async function createSubscription() {
     throw new Error('Subscription-Erstellung lieferte keine id zurück');
   }
 
-  logger.info(`Subscription erstellt: ${subscriptionId}`);
+  logger.info(`Subscription erstellt: ${subscriptionId} (mode=${config.knx.subscriptionMode})`);
   scheduleRenewal();
   return subscriptionId;
 }

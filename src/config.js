@@ -31,7 +31,17 @@ export const config = {
     resourceBaseUrl: `${knxHostUrl}${KNX_API_PATH}`,
     clientId: required('KNX_OAUTH_CLIENT_ID'),
     clientSecret: required('KNX_OAUTH_CLIENT_SECRET'),
-    subscriptionTargetType: optional('KNX_SUBSCRIPTION_TARGET_TYPE', 'node'),
+    // Womit die Datapoint-Subscription (subscriptionDatapoints) adressiert wird:
+    // - "sites" (Default): alle Root-Locations via GET /sites automatisch
+    //   ermitteln, jede mit meta.expand=true -> deckt die komplette
+    //   Installation ab, ohne Location-IDs manuell pflegen zu müssen
+    // - "location": eine einzelne Location (KNX_SUBSCRIPTION_TARGET_ID), expand=true
+    // - "datapoint": ein einzelner Datapoint (KNX_SUBSCRIPTION_TARGET_ID), kein expand
+    // WICHTIG: subscriptionNode/subscriptionInstallations liefern laut Spec nur
+    // Node-/Installation-Metadaten-Changes, KEINE Datapoint-CoV-Events (Aktor
+    // schalten). Für Datapoint-Events ist ausschließlich subscriptionDatapoints
+    // relevant, siehe docs/DESIGN.md.
+    subscriptionMode: optional('KNX_SUBSCRIPTION_MODE', 'sites'),
     subscriptionTargetId: optional('KNX_SUBSCRIPTION_TARGET_ID', ''),
     subscriptionLifetimeS: Number(optional('KNX_SUBSCRIPTION_LIFETIME_S', '3600')),
   },
@@ -58,12 +68,14 @@ export const config = {
   logLevel: optional('LOG_LEVEL', 'info'),
 };
 
-if (!['node', 'installation'].includes(config.knx.subscriptionTargetType)) {
+if (!['sites', 'location', 'datapoint'].includes(config.knx.subscriptionMode)) {
   throw new Error(
-    `KNX_SUBSCRIPTION_TARGET_TYPE muss "node" oder "installation" sein, nicht "${config.knx.subscriptionTargetType}"`,
+    `KNX_SUBSCRIPTION_MODE muss "sites", "location" oder "datapoint" sein, nicht "${config.knx.subscriptionMode}"`,
   );
 }
 
-if (config.knx.subscriptionTargetType === 'installation' && !config.knx.subscriptionTargetId) {
-  throw new Error('KNX_SUBSCRIPTION_TARGET_ID ist bei TARGET_TYPE=installation erforderlich.');
+if (['location', 'datapoint'].includes(config.knx.subscriptionMode) && !config.knx.subscriptionTargetId) {
+  throw new Error(
+    `KNX_SUBSCRIPTION_TARGET_ID ist bei KNX_SUBSCRIPTION_MODE=${config.knx.subscriptionMode} erforderlich.`,
+  );
 }

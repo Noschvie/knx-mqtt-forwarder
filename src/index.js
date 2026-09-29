@@ -1,4 +1,3 @@
-import { config } from './config.js';
 import { logger } from './logger.js';
 import { connectMqtt, disconnectMqtt } from './mqttPublisher.js';
 import { refreshDatapointCache } from './datapointCache.js';
@@ -16,13 +15,10 @@ async function start() {
   await refreshDatapointCache();
   httpServer = await startCallbackServer();
 
-  const nodeId = await logNodeInfo();
+  // Rein informativ (Diagnose/Konfigurationshilfe) — hat keinen Einfluss mehr
+  // auf die Subscription selbst, siehe subscriptionManager.js.
+  await logNodeInfo();
   await logInstallations();
-
-  if (config.knx.subscriptionTargetType === 'node' && !config.knx.subscriptionTargetId && nodeId) {
-    logger.info(`Keine KNX_SUBSCRIPTION_TARGET_ID gesetzt, übernehme Node-ID aus /node: ${nodeId}`);
-    config.knx.subscriptionTargetId = nodeId;
-  }
 
   await createSubscription();
 
