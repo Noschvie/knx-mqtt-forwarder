@@ -41,19 +41,23 @@ function topicFor(prefix, ga) {
 }
 
 export function publishState(ga, payload) {
-  if (!client) return;
-  client.publish(topicFor(config.mqtt.stateTopicPrefix, ga), JSON.stringify(payload), {
-    qos: 1,
-    retain: true,
-  });
+  if (!client) {
+    logger.warn(`MQTT nicht verbunden — State-Event für ga=${ga} verworfen`);
+    return;
+  }
+  const topic = topicFor(config.mqtt.stateTopicPrefix, ga);
+  client.publish(topic, JSON.stringify(payload), { qos: 1, retain: true });
+  logger.debug(`MQTT publish (retained): ${topic}`);
 }
 
 export function publishBusEvent(ga, payload) {
-  if (!client) return;
-  client.publish(topicFor(config.mqtt.busTopicPrefix, ga), JSON.stringify(payload), {
-    qos: 0,
-    retain: false,
-  });
+  if (!client) {
+    logger.warn(`MQTT nicht verbunden — Bus-Event für ga=${ga} verworfen`);
+    return;
+  }
+  const topic = topicFor(config.mqtt.busTopicPrefix, ga);
+  client.publish(topic, JSON.stringify(payload), { qos: 0, retain: false });
+  logger.debug(`MQTT publish: ${topic}`);
 }
 
 export async function disconnectMqtt() {

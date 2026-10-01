@@ -15,10 +15,6 @@ function readRawBody(req) {
 }
 
 function handleEntry(entry) {
-    logger.info(
-    `KNX Event: type=${entry.type} id=${entry.id} attributes=${JSON.stringify(entry.attributes ?? {})}`,
-  );
-
   if (entry.type !== 'datapoint') {
     // node/installation-Events werden in v1 nicht auf MQTT gespiegelt,
     // siehe Design-Dokument Abschnitt 3.
@@ -29,6 +25,12 @@ function handleEntry(entry) {
   const meta = lookupDatapoint(entry.id);
   const attrs = entry.attributes ?? {};
 
+  if (meta.title === null) {
+    // lookupDatapoint() fällt auf die rohe UUID als "ga" zurück, wenn der
+    // Datapoint nicht im Cache ist (z. B. nach Erstellung ohne Cache-Refresh).
+    logger.warn(`Datapoint ${entry.id} nicht im Cache gefunden — Event ohne Namen/GA-Anreicherung`);
+  }
+
   const payload = {
     ga: meta.ga,
     title: meta.title,
@@ -36,6 +38,8 @@ function handleEntry(entry) {
     value: attrs.value ?? null,
     timestamp: attrs.timestamp ?? new Date().toISOString(),
   };
+
+  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${meta.ga}, dpt=${meta.dpt ?? '?'}) = ${payload.value}`);
 
   publishState(meta.ga, payload);
   publishBusEvent(meta.ga, payload);
@@ -56,11 +60,6 @@ export function startCallbackServer() {
       res.writeHead(400).end();
       return;
     }
-
-    logger.info('=== KNX CALLBACK EMPFANGEN ===');
-    logger.info(`Request: ${req.method} ${req.url}`);
-    logger.info(`Headers: ${JSON.stringify(req.headers)}`);
-    logger.info(`Body: ${rawBody.toString('utf8')}`);
 
     const { valid, reason } = verifyCallbackSignature({
       method: req.method,
