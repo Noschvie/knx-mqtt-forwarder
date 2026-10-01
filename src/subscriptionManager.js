@@ -1,13 +1,10 @@
 import { config } from './config.js';
 import { getAccessToken } from './oauthClient.js';
+import { getAllDatapointIds } from './datapointCache.js';
 import { logger } from './logger.js';
 
 let subscriptionId = null;
 let renewTimer = null;
-// Cache der Root-Location-IDs (Sites), damit nicht bei jedem Renewal erneut
-// GET /sites aufgerufen werden muss. Wird bei Bedarf (Mode "sites") einmalig
-// beim ersten createSubscription()-Aufruf befüllt.
-let cachedSiteIds = null;
 
 async function request(method, path, body, scope = 'manage') {
   const token = await getAccessToken(scope);
@@ -29,36 +26,28 @@ async function request(method, path, body, scope = 'manage') {
   return res.json().catch(() => null);
 }
 
-async function fetchSiteIds() {
-  const payload = await request('GET', '/sites', undefined, 'read');
-  const items = payload?.data ?? [];
-  const ids = items.map((item) => item.id);
-  logger.info(
-    `Sites für Datapoint-Subscription ermittelt (${ids.length}): ` +
-      items.map((item) => `${item.id} ("${item.attributes?.title ?? '?'}")`).join(', '),
-  );
-  if (ids.length === 0) {
-    logger.warn('GET /sites lieferte keine Root-Locations zurück — Subscription hätte keine Ziel-Items.');
-  }
-  return ids;
-}
-
-async function buildSubscriptionDatapointsItems() {
-  if (config.knx.subscriptionMode === 'sites') {
-    if (!cachedSiteIds) cachedSiteIds = await fetchSiteIds();
-    return cachedSiteIds.map((id) => ({ id, type: 'location', meta: { expand: true } }));
+function buildSubscriptionDatapointsItems() {
+  if (config.knx.subscriptionMode === 'all') {
+    // WICHTIG: subscriptionDatapoints mit type "location" + expand wird vom
+    // Gateway trotz Spec-Beispiel NICHT unterstützt ("Invalid relationship
+    // type 'location'" — per Praxistest bestätigt). Daher jeden bekannten
+    // Datapoint einzeln adressieren, statt über eine Location zu kaskadieren.
+    const ids = getAllDatapointIds();
+    if (ids.length === 0) {
+      logger.warn(
+        'Datapoint-Cache ist leer — Subscription hätte keine Ziel-Items. ' +
+          'Prüfe, ob refreshDatapointCache() erfolgreich lief und ob überhaupt Datapoints existieren.',
+      );
+    }
+    return ids.map((id) => ({ id, type: 'datapoint' }));
   }
 
-  if (config.knx.subscriptionMode === 'location') {
-    return [{ id: config.knx.subscriptionTargetId, type: 'location', meta: { expand: true } }];
-  }
-
-  // 'datapoint'
+  // 'datapoint' (einzelnes Ziel)
   return [{ id: config.knx.subscriptionTargetId, type: 'datapoint' }];
 }
 
-async function subscriptionRequestBody() {
-  const items = await buildSubscriptionDatapointsItems();
+function subscriptionRequestBody() {
+  const items = buildSubscriptionDatapointsItems();
 
   return {
     data: {
@@ -76,7 +65,10 @@ async function subscriptionRequestBody() {
 }
 
 export async function createSubscription() {
-  const body = await subscriptionRequestBody();
+  const body = subscriptionRequestBody();
+  const itemCount = body.data.relationships.subscriptionDatapoints.data.length;
+  logger.info(`Erstelle Subscription für ${itemCount} Datapoint(s) (mode=${config.knx.subscriptionMode})...`);
+
   const resp = await request('POST', '/subscriptions', body);
   subscriptionId = resp?.data?.id ?? null;
 
@@ -84,7 +76,7 @@ export async function createSubscription() {
     throw new Error('Subscription-Erstellung lieferte keine id zurück');
   }
 
-  logger.info(`Subscription erstellt: ${subscriptionId} (mode=${config.knx.subscriptionMode})`);
+  logger.info(`Subscription erstellt: ${subscriptionId}`);
   scheduleRenewal();
   return subscriptionId;
 }

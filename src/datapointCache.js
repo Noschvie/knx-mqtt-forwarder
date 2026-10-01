@@ -83,6 +83,16 @@ export async function refreshDatapointCache() {
 }
 
 /**
+ * Liefert alle aktuell im Cache bekannten Datapoint-IDs — Basis für den
+ * "all"-Subscription-Modus, der jeden Datapoint einzeln adressiert (siehe
+ * subscriptionManager.js: das Gateway unterstützt Location-Level-Expand in
+ * subscriptionDatapoints nicht, siehe docs/DESIGN.md).
+ */
+export function getAllDatapointIds() {
+  return Array.from(cache.keys());
+}
+
+/**
  * Liefert die bekannten Metadaten zu einer Datapoint-UUID. Fällt auf die
  * blanke UUID als "ga" zurück, falls kein GA ermittelbar ist (z. B. Datapoint
  * nicht im Cache, weil zwischenzeitlich neu angelegt).
