@@ -93,12 +93,75 @@ export function getAllDatapointIds() {
 }
 
 /**
- * Liefert die bekannten Metadaten zu einer Datapoint-UUID. Fällt auf die
- * blanke UUID als "ga" zurück, falls kein GA ermittelbar ist (z. B. Datapoint
- * nicht im Cache, weil zwischenzeitlich neu angelegt).
+ * Liefert die bekannten Metadaten zu einer Datapoint-ID (synchron, nur
+ * Bulk-Cache). Fällt auf die blanke ID als "ga" zurück, falls kein Treffer da
+ * ist. Für Event-Verarbeitung lieber resolveDatapoint() verwenden (siehe
+ * unten), das bei einem Cache-Miss live nachlädt.
  */
 export function lookupDatapoint(id) {
   const hit = cache.get(id);
   if (hit) return hit;
   return { id, ga: id, title: null, dpt: null };
+}
+
+// IDs, für die ein Live-Fetch bereits erfolglos war (z. B. HTTP 404) — um bei
+// wiederholten Events für dieselbe (tatsächlich nicht existierende) ID nicht
+// bei jedem Mal erneut erfolglos nachzufragen.
+const knownMissing = new Set();
+
+async function fetchSingleDatapoint(id) {
+  const token = await getAccessToken('read');
+  const res = await fetch(`${config.knx.resourceBaseUrl}/datapoints/${encodeURIComponent(id)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.api+json',
+    },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`GET /datapoints/${id} fehlgeschlagen (HTTP ${res.status}): ${text}`);
+  }
+
+  const payload = await res.json();
+  return payload?.data ?? null;
+}
+
+/**
+ * Wie lookupDatapoint(), aber mit Live-Fallback: Ist die ID nicht im
+ * Bulk-Cache (z. B. weil /datapoints sie beim letzten Refresh nicht gelistet
+ * hat, obwohl sie aktiv Bus-Events liefert — real beobachtet bei
+ * semantic-knx-gateway), wird sie einzeln per GET /datapoints/{id}
+ * nachgeladen und das Ergebnis für künftige Events gecached.
+ */
+export async function resolveDatapoint(id) {
+  const cached = cache.get(id);
+  if (cached) return cached;
+
+  if (knownMissing.has(id)) {
+    return { id, ga: id, title: null, dpt: null };
+  }
+
+  try {
+    const item = await fetchSingleDatapoint(id);
+    if (!item) {
+      knownMissing.add(id);
+      logger.warn(`Live-Fetch GET /datapoints/${id}: nicht gefunden (404)`);
+      return { id, ga: id, title: null, dpt: null };
+    }
+
+    const meta = {
+      id: item.id,
+      ga: extractGa(item),
+      title: item.attributes?.title ?? null,
+      dpt: extractDpt(item),
+    };
+    cache.set(id, meta);
+    logger.info(`Datapoint ${id} per Live-Fetch nachgeladen und gecached: "${meta.title ?? '?'}"`);
+    return meta;
+  } catch (err) {
+    logger.warn(`Live-Fetch für Datapoint ${id} fehlgeschlagen`, err);
+    return { id, ga: id, title: null, dpt: null };
+  }
 }

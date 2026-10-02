@@ -2,7 +2,7 @@ import http from 'node:http';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { verifyCallbackSignature } from './signature.js';
-import { lookupDatapoint } from './datapointCache.js';
+import { resolveDatapoint } from './datapointCache.js';
 import { publishState, publishBusEvent } from './mqttPublisher.js';
 
 function readRawBody(req) {
@@ -14,7 +14,7 @@ function readRawBody(req) {
   });
 }
 
-function handleEntry(entry) {
+async function handleEntry(entry) {
   if (entry.type !== 'datapoint') {
     // node/installation-Events werden in v1 nicht auf MQTT gespiegelt,
     // siehe Design-Dokument Abschnitt 3.
@@ -22,14 +22,12 @@ function handleEntry(entry) {
     return;
   }
 
-  const meta = lookupDatapoint(entry.id);
+  // resolveDatapoint() prüft zuerst den Bulk-Cache und lädt bei einem Miss
+  // live per GET /datapoints/{id} nach (siehe datapointCache.js) — nötig,
+  // weil einzelne IDs real beobachtet nicht im Bulk-/datapoints-Katalog
+  // auftauchen, obwohl sie aktiv Events liefern.
+  const meta = await resolveDatapoint(entry.id);
   const attrs = entry.attributes ?? {};
-
-  if (meta.title === null) {
-    // lookupDatapoint() fällt auf die rohe UUID als "ga" zurück, wenn der
-    // Datapoint nicht im Cache ist (z. B. nach Erstellung ohne Cache-Refresh).
-    logger.warn(`Datapoint ${entry.id} nicht im Cache gefunden — Event ohne Namen/GA-Anreicherung`);
-  }
 
   const payload = {
     ga: meta.ga,
@@ -87,7 +85,7 @@ export function startCallbackServer() {
     const entries = Array.isArray(body?.data) ? body.data : body?.data ? [body.data] : [];
     for (const entry of entries) {
       try {
-        handleEntry(entry);
+        await handleEntry(entry);
       } catch (err) {
         logger.error(`Fehler beim Verarbeiten eines Events (id=${entry?.id})`, err);
       }
