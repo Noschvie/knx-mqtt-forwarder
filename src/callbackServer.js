@@ -37,7 +37,12 @@ async function handleEntry(entry) {
     timestamp: attrs.timestamp ?? new Date().toISOString(),
   };
 
-  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${meta.ga}, dpt=${meta.dpt ?? '?'}) = ${payload.value}`);
+  // Manche DPTs (z. B. 10.001 Uhrzeit, 11.001 Datum) liefern ein strukturiertes
+  // Objekt statt eines primitiven Werts — JSON.stringify statt direkter
+  // Interpolation, sonst "[object Object]" in der Log-Zeile (der tatsächliche
+  // MQTT-Payload war davon nie betroffen, da der dort ohnehin JSON-serialisiert wird).
+  const valueStr = typeof payload.value === 'object' && payload.value !== null ? JSON.stringify(payload.value) : payload.value;
+  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${meta.ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
 
   publishState(meta.ga, payload);
   publishBusEvent(meta.ga, payload);
