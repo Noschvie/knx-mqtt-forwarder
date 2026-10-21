@@ -18,7 +18,7 @@ async function handleEntry(entry) {
   if (entry.type !== 'datapoint') {
     // Node/installation events are not mirrored to MQTT in v1; see section 3
     // of the design document.
-    logger.debug(`Event vom Typ "${entry.type}" ignoriert (id=${entry.id})`);
+    logger.debug(`Ignoring event of type "${entry.type}" (id=${entry.id})`);
     return;
   }
 
@@ -62,7 +62,7 @@ export function startCallbackServer() {
     try {
       rawBody = await readRawBody(req);
     } catch (err) {
-      logger.error('Fehler beim Lesen des Callback-Bodys', err);
+      logger.error('Failed to read callback body', err);
       res.writeHead(400).end();
       return;
     }
@@ -76,7 +76,7 @@ export function startCallbackServer() {
     });
 
     if (!valid) {
-      logger.warn(`Callback abgelehnt: ${reason}`);
+      logger.warn(`Callback rejected: ${reason}`);
       res.writeHead(401).end();
       return;
     }
@@ -85,7 +85,7 @@ export function startCallbackServer() {
     try {
       body = JSON.parse(rawBody.toString('utf8'));
     } catch (err) {
-      logger.error('Callback-Body ist kein valides JSON', err);
+      logger.error('Callback body is not valid JSON', err);
       res.writeHead(400).end();
       return;
     }
@@ -95,7 +95,7 @@ export function startCallbackServer() {
       try {
         await handleEntry(entry);
       } catch (err) {
-        logger.error(`Fehler beim Verarbeiten eines Events (id=${entry?.id})`, err);
+        logger.error(`Failed to process event (id=${entry?.id})`, err);
       }
     }
 
@@ -106,7 +106,7 @@ export function startCallbackServer() {
     server.once('error', reject);
     server.listen(config.callback.port, config.callback.host, () => {
       logger.info(
-        `Callback-Server hört auf http://${config.callback.host}:${config.callback.port}${config.callback.path}`,
+        `Callback server listening on http://${config.callback.host}:${config.callback.port}${config.callback.path}`,
       );
       resolve(server);
     });

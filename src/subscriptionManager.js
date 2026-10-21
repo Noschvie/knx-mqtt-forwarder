@@ -19,7 +19,7 @@ async function request(method, path, body, scope = 'manage') {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`${method} ${path} fehlgeschlagen (HTTP ${res.status}): ${text}`);
+    throw new Error(`${method} ${path} failed (HTTP ${res.status}): ${text}`);
   }
 
   if (res.status === 204) return null;
@@ -35,8 +35,8 @@ function buildSubscriptionDatapointsItems() {
     const ids = getAllDatapointIds();
     if (ids.length === 0) {
       logger.warn(
-        'Datapoint-Cache ist leer — Subscription hätte keine Ziel-Items. ' +
-          'Prüfe, ob refreshDatapointCache() erfolgreich lief und ob überhaupt Datapoints existieren.',
+        'Datapoint cache is empty — the subscription would have no target items. ' +
+          'Check whether refreshDatapointCache() completed successfully and whether any datapoints exist.',
       );
     }
     return ids.map((id) => ({ id, type: 'datapoint' }));
@@ -67,16 +67,16 @@ function subscriptionRequestBody() {
 export async function createSubscription() {
   const body = subscriptionRequestBody();
   const itemCount = body.data.relationships.subscriptionDatapoints.data.length;
-  logger.info(`Erstelle Subscription für ${itemCount} Datapoint(s) (mode=${config.knx.subscriptionMode})...`);
+  logger.info(`Creating subscription for ${itemCount} datapoint(s) (mode=${config.knx.subscriptionMode})...`);
 
   const resp = await request('POST', '/subscriptions', body);
   subscriptionId = resp?.data?.id ?? null;
 
   if (!subscriptionId) {
-    throw new Error('Subscription-Erstellung lieferte keine id zurück');
+    throw new Error('Subscription creation did not return an ID');
   }
 
-  logger.info(`Subscription erstellt: ${subscriptionId}`);
+  logger.info(`Subscription created: ${subscriptionId}`);
   scheduleRenewal();
   return subscriptionId;
 }
@@ -91,14 +91,14 @@ async function renewSubscription() {
         attributes: { lifetime: config.knx.subscriptionLifetimeS },
       },
     });
-    logger.info(`Subscription erneuert: ${subscriptionId}`);
+    logger.info(`Subscription renewed: ${subscriptionId}`);
   } catch (err) {
-    logger.error('Subscription-Renewal fehlgeschlagen, versuche Neuanlage', err);
+    logger.error('Subscription renewal failed; attempting to create a new subscription', err);
     subscriptionId = null;
     try {
       await createSubscription();
     } catch (err2) {
-      logger.error('Neuanlage der Subscription fehlgeschlagen', err2);
+      logger.error('Failed to create a new subscription', err2);
     }
     return;
   }
@@ -119,9 +119,9 @@ export async function deleteSubscription() {
   subscriptionId = null;
   try {
     await request('DELETE', `/subscriptions/${id}`);
-    logger.info(`Subscription gelöscht: ${id}`);
+    logger.info(`Subscription deleted: ${id}`);
   } catch (err) {
-    logger.warn(`Subscription-Löschung fehlgeschlagen (${id})`, err);
+    logger.warn(`Failed to delete subscription (${id})`, err);
   }
 }
 

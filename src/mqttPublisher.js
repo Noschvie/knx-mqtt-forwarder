@@ -20,18 +20,18 @@ export function connectMqtt() {
     });
 
     client.once('connect', () => {
-      logger.info(`MQTT verbunden: ${config.mqtt.url}`);
+      logger.info(`Connected to MQTT: ${config.mqtt.url}`);
       client.publish(config.mqtt.statusTopic, 'online', { qos: 1, retain: true });
       resolve(client);
     });
 
     client.once('error', (err) => {
-      logger.error('MQTT-Verbindungsfehler', err);
+      logger.error('MQTT connection error', err);
       reject(err);
     });
 
-    client.on('reconnect', () => logger.warn('MQTT: Reconnect-Versuch...'));
-    client.on('offline', () => logger.warn('MQTT: Verbindung offline'));
+    client.on('reconnect', () => logger.warn('MQTT: reconnect attempt...'));
+    client.on('offline', () => logger.warn('MQTT: connection offline'));
   });
 }
 
@@ -45,7 +45,7 @@ function topicFor(prefix, ga) {
 
 export function publishState(ga, payload) {
   if (!client) {
-    logger.warn(`MQTT nicht verbunden — State-Event für ga=${ga} verworfen`);
+    logger.warn(`MQTT not connected — discarded state event for ga=${ga}`);
     return;
   }
   const topic = topicFor(config.mqtt.stateTopicPrefix, ga);
@@ -55,7 +55,7 @@ export function publishState(ga, payload) {
 
 export function publishBusEvent(ga, payload) {
   if (!client) {
-    logger.warn(`MQTT nicht verbunden — Bus-Event für ga=${ga} verworfen`);
+    logger.warn(`MQTT not connected — discarded bus event for ga=${ga}`);
     return;
   }
   const topic = topicFor(config.mqtt.busTopicPrefix, ga);

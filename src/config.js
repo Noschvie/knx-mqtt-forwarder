@@ -3,7 +3,7 @@ import 'dotenv/config';
 function required(name) {
   const value = process.env[name];
   if (!value || value.trim() === '') {
-    throw new Error(`Fehlende Pflicht-Umgebungsvariable: ${name}`);
+    throw new Error(`Required environment variable is missing: ${name}`);
   }
   return value;
 }
@@ -73,9 +73,9 @@ export const config = {
 };
 
 if (!['all', 'datapoint'].includes(config.knx.subscriptionMode)) {
-  throw new Error(`KNX_SUBSCRIPTION_MODE muss "all" oder "datapoint" sein, nicht "${config.knx.subscriptionMode}"`);
+  throw new Error(`KNX_SUBSCRIPTION_MODE must be "all" or "datapoint", not "${config.knx.subscriptionMode}"`);
 }
 
 if (config.knx.subscriptionMode === 'datapoint' && !config.knx.subscriptionTargetId) {
-  throw new Error('KNX_SUBSCRIPTION_TARGET_ID ist bei KNX_SUBSCRIPTION_MODE=datapoint erforderlich.');
+  throw new Error('KNX_SUBSCRIPTION_TARGET_ID is required when KNX_SUBSCRIPTION_MODE=datapoint.');
 }

@@ -9,7 +9,7 @@ let httpServer = null;
 let shuttingDown = false;
 
 async function start() {
-  logger.info('knx-mqtt-forwarder startet...');
+  logger.info('knx-mqtt-forwarder starting...');
 
   await connectMqtt();
   await refreshDatapointCache();
@@ -22,19 +22,19 @@ async function start() {
 
   await createSubscription();
 
-  logger.info('knx-mqtt-forwarder bereit.');
+  logger.info('knx-mqtt-forwarder ready.');
 }
 
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  logger.info(`Signal ${signal} empfangen, fahre herunter...`);
+  logger.info(`Received ${signal}; shutting down...`);
 
   await deleteSubscription();
   if (httpServer) await new Promise((resolve) => httpServer.close(resolve));
   await disconnectMqtt();
 
-  logger.info('Sauber beendet.');
+  logger.info('Shutdown complete.');
   process.exit(0);
 }
 
@@ -42,6 +42,6 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 start().catch((err) => {
-  logger.error('Start fehlgeschlagen', err);
+  logger.error('Startup failed', err);
   process.exit(1);
 });

@@ -13,7 +13,7 @@ async function getJson(path) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`GET ${path} fehlgeschlagen (HTTP ${res.status}): ${text}`);
+    throw new Error(`GET ${path} failed (HTTP ${res.status}): ${text}`);
   }
 
   return res.json();
@@ -29,13 +29,13 @@ export async function logNodeInfo() {
   try {
     payload = await getJson('/node');
   } catch (err) {
-    logger.warn('GET /node fehlgeschlagen, überspringe Info-Log', err);
+    logger.warn('GET /node failed; skipping node information logging', err);
     return null;
   }
 
   const node = payload.data;
   if (!node) {
-    logger.warn('/node lieferte kein data-Objekt zurück');
+    logger.warn('/node returned no data object');
     return null;
   }
 
@@ -59,13 +59,13 @@ export async function logInstallations() {
   try {
     payload = await getJson('/installations');
   } catch (err) {
-    logger.warn('GET /installations fehlgeschlagen, überspringe Info-Log', err);
+    logger.warn('GET /installations failed; skipping installation information logging', err);
     return [];
   }
 
   const items = payload.data ?? [];
   if (items.length === 0) {
-    logger.info('Installations: keine vorhanden');
+    logger.info('Installations: none found');
     return items;
   }
 

@@ -43,7 +43,7 @@ async function fetchPage(token, pageNumber) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`GET /datapoints fehlgeschlagen (HTTP ${res.status}): ${text}`);
+    throw new Error(`GET /datapoints failed (HTTP ${res.status}): ${text}`);
   }
 
   return res.json();
@@ -83,7 +83,7 @@ export async function refreshDatapointCache() {
         withoutCallbackId += 1;
       }
 
-      logger.debug(`Datapoint-Cache-Eintrag: ${JSON.stringify({
+      logger.debug(`Datapoint cache entry: ${JSON.stringify({
         resourceId: item.id,
         callbackId: callbackId ?? null,
         ga: meta.ga,
@@ -93,7 +93,7 @@ export async function refreshDatapointCache() {
     }
 
     loaded += items.length;
-    logger.debug(`Datapoint-Cache-Seite ${pageNumber}: ${items.length} Einträge geladen (${loaded}/${total})`);
+    logger.debug(`Datapoint cache page ${pageNumber}: loaded ${items.length} items (${loaded}/${total})`);
     pageNumber += 1;
   } while (loaded < total);
 
@@ -104,8 +104,8 @@ export async function refreshDatapointCache() {
   knownMissing.clear();
 
   logger.info(
-    `Datapoint-Metadaten-Cache aktualisiert: UUID-Index=${cache.size}, ` +
-      `Callback-ID-Index=${callbackCache.size}, ohne Callback-ID=${withoutCallbackId}`,
+    `Datapoint metadata cache updated: UUID index=${cache.size}, ` +
+      `callback ID index=${callbackCache.size}, without callback ID=${withoutCallbackId}`,
   );
 }
 
@@ -148,7 +148,7 @@ async function fetchSingleDatapoint(id) {
   if (res.status === 404) return null;
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`GET /datapoints/${id} fehlgeschlagen (HTTP ${res.status}): ${text}`);
+    throw new Error(`GET /datapoints/${id} failed (HTTP ${res.status}): ${text}`);
   }
 
   const payload = await res.json();
@@ -187,7 +187,7 @@ async function fetchAndCacheDatapoint(id) {
     const item = await fetchSingleDatapoint(id);
     if (!item) {
       knownMissing.add(id);
-      logger.warn(`Live-Fetch GET /datapoints/${id}: nicht gefunden (404)`);
+      logger.warn(`Live fetch GET /datapoints/${id}: not found (404)`);
       return { id, ga: id, title: null, dpt: null };
     }
 
@@ -199,10 +199,10 @@ async function fetchAndCacheDatapoint(id) {
     };
     cache.set(item.id, meta);
     callbackCache.set(String(id), meta);
-    logger.info(`Datapoint ${id} per Live-Fetch nachgeladen und gecached: "${meta.title ?? '?'}"`);
+    logger.info(`Datapoint ${id} fetched live and cached: "${meta.title ?? '?'}"`);
     return meta;
   } catch (err) {
-    logger.warn(`Live-Fetch für Datapoint ${id} fehlgeschlagen`, err);
+    logger.warn(`Live fetch for datapoint ${id} failed`, err);
     return { id, ga: id, title: null, dpt: null };
   }
 }

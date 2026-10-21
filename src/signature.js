@@ -5,7 +5,7 @@ import { logger } from './logger.js';
 /**
  * Verifies the X-Callback-Signature header against the configured secret.
  *
- * Laut KNX IoT 3rd Party API Spec (Callback eventNotification):
+ * According to the KNX IoT 3rd Party API Spec (Callback eventNotification):
  * "A base64 encoded HMAC-SHA256 signature as a concatenation of the entire
  * message request-line (including the CRLF), HTTP header values of Host,
  * Date, Content-Length, and the entire message body."
@@ -19,7 +19,7 @@ import { logger } from './logger.js';
 export function verifyCallbackSignature({ method, url, httpVersion, headers, rawBody }) {
   const signatureHeader = headers['x-callback-signature'];
   if (!signatureHeader) {
-    return { valid: false, reason: 'X-Callback-Signature-Header fehlt' };
+    return { valid: false, reason: 'X-Callback-Signature header is missing' };
   }
 
   const requestLine = `${method} ${url} HTTP/${httpVersion}\r\n`;
@@ -45,8 +45,8 @@ export function verifyCallbackSignature({ method, url, httpVersion, headers, raw
   }
 
   if (!valid) {
-    logger.warn('Callback-Signatur ungültig');
+    logger.warn('Invalid callback signature');
   }
 
-  return { valid, reason: valid ? null : 'Signatur stimmt nicht überein' };
+  return { valid, reason: valid ? null : 'Signature does not match' };
 }

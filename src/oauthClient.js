@@ -28,12 +28,12 @@ async function requestToken(scope) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`OAuth-Token-Request fehlgeschlagen (scope="${scope}", HTTP ${res.status}): ${text}`);
+    throw new Error(`OAuth token request failed (scope="${scope}", HTTP ${res.status}): ${text}`);
   }
 
   const data = await res.json();
   if (!data.access_token) {
-    throw new Error(`OAuth-Antwort ohne access_token (scope="${scope}")`);
+    throw new Error(`OAuth response contains no access_token (scope="${scope}")`);
   }
 
   return data;
@@ -52,7 +52,7 @@ export async function getAccessToken(scope) {
     return cached.accessToken;
   }
 
-  logger.debug(`Hole neues OAuth-Token (scope="${scope}")`);
+  logger.debug(`Requesting new OAuth token (scope="${scope}")`);
   const data = await requestToken(scope);
   const expiresInS = Number(data.expires_in ?? 300);
 
