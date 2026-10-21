@@ -3,21 +3,18 @@ import { config } from './config.js';
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 const currentLevel = LEVELS[config.logLevel] ?? LEVELS.info;
 
-function ts() {
+/** Lokaler ISO-8601-Zeitstempel inklusive UTC-Offset. */
+function localTimestamp() {
   const date = new Date();
-  const offsetMinutes = -date.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? '+' : '-';
-  const offsetHours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0');
-  const offsetRemainder = String(Math.abs(offsetMinutes) % 60).padStart(2, '0');
-  const localTimestamp = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, -1);
-  return `${localTimestamp}${sign}${offsetHours}:${offsetRemainder}`;
+  const pad = (value, length = 2) => String(value).padStart(length, '0');
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
 }
 
 function log(level, msg, extra) {
   if (LEVELS[level] < currentLevel) return;
-  const line = `[${ts()}] ${level.toUpperCase().padEnd(5)} ${msg}`;
+  const line = `[${localTimestamp()}] ${level.toUpperCase().padEnd(5)} ${msg}`;
   const out = level === 'error' ? console.error : console.log;
   if (extra !== undefined) {
     out(line, extra);
