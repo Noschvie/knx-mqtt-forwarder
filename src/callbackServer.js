@@ -28,9 +28,12 @@ async function handleEntry(entry) {
   // auftauchen, obwohl sie aktiv Events liefern.
   const meta = await resolveDatapoint(entry.id);
   const attrs = entry.attributes ?? {};
+  // Fallback auf die Datapoint-ID, falls das Gateway keine GA liefert — sonst
+  // würde das Topic "knx/state/null" entstehen.
+  const ga = meta.ga ?? entry.id;
 
   const payload = {
-    ga: meta.ga,
+    ga,
     title: meta.title,
     dpt: meta.dpt,
     value: attrs.value ?? null,
@@ -42,10 +45,10 @@ async function handleEntry(entry) {
   // Interpolation, sonst "[object Object]" in der Log-Zeile (der tatsächliche
   // MQTT-Payload war davon nie betroffen, da der dort ohnehin JSON-serialisiert wird).
   const valueStr = typeof payload.value === 'object' && payload.value !== null ? JSON.stringify(payload.value) : payload.value;
-  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${meta.ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
+  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
 
-  publishState(meta.ga, payload);
-  publishBusEvent(meta.ga, payload);
+  publishState(ga, payload);
+  publishBusEvent(ga, payload);
 }
 
 export function startCallbackServer() {

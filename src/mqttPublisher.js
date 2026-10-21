@@ -36,8 +36,12 @@ export function connectMqtt() {
 }
 
 function topicFor(prefix, ga) {
-  // GA-Format "1/2/3" ist bereits ein gültiges MQTT-Topic-Segment-Trio.
-  return `${prefix}/${ga}`;
+  // Flaches Topic: "4/2/35" -> "4-2-35", d. h. genau EINE Topic-Ebene pro GA
+  // (z. B. knx/state/4-2-35). Der Payload behält die GA im Originalformat.
+  // "+" und "#" sind in Topic-Namen unzulässig und werden vorsichtshalber
+  // ebenfalls ersetzt.
+  const flat = String(ga).replace(/[/+#]/g, '-');
+  return `${prefix}/${flat}`;
 }
 
 export function publishState(ga, payload) {
