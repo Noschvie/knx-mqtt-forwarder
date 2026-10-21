@@ -43,7 +43,10 @@ async function handleEntry(entry) {
   // Serialize object values to avoid "[object Object]" in the log.
   // The MQTT payload is unaffected because it is already JSON-serialized.
   const valueStr = typeof payload.value === 'object' && payload.value !== null ? JSON.stringify(payload.value) : payload.value;
-  logger.info(`CoV: "${meta.title ?? '?'}" (ga=${ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
+
+  // Datapoint events with a value (CoV) are logged at info level; events without one at debug level.
+  const logLevel = attrs.value !== undefined ? 'info' : 'debug';
+  logger[logLevel](`Publishing state for GA ${ga}: ${valueStr}`, payload);
 
   publishState(ga, payload);
   publishBusEvent(ga, payload);
