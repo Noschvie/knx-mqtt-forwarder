@@ -22,8 +22,8 @@ Party API v2.1.0) und MQTT (EMQX). Details zur Architektur, Topic-Schema und off
 
 ```bash
 cp .env.example .env
-# .env ausfüllen: KNX_API_BASE_URL, OAuth-Client, Subscription-Ziel,
-# CALLBACK_PUBLIC_URL, CALLBACK_SECRET, MQTT-Zugangsdaten
+# Fill in .env: KNX_API_BASE_URL, OAuth client, subscription target,
+# CALLBACK_PUBLIC_URL, CALLBACK_SECRET, and MQTT credentials
 npm install
 npm start
 ```
