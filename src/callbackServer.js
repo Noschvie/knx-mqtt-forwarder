@@ -46,7 +46,7 @@ async function handleEntry(entry) {
 
   // Datapoint events with a value (CoV) are logged at info level; events without one at debug level.
   const logLevel = attrs.value !== undefined ? 'info' : 'debug';
-  logger[logLevel](`Publishing state for GA ${ga}: ${valueStr}`, payload);
+  logger[logLevel](`CoV: "${meta.title ?? '?'}" (id=${entry.id}, ga=${ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
 
   publishState(ga, payload);
   publishBusEvent(ga, payload);
