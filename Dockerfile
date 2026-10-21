@@ -1,6 +1,8 @@
 FROM node:26-alpine AS base
 WORKDIR /app
 
+RUN apk add --no-cache tzdata
+
 COPY package.json ./
 RUN npm install --omit=dev
 
