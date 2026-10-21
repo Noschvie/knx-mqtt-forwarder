@@ -4,6 +4,9 @@ import { logger } from './logger.js';
 
 // id (datapoint UUID) -> { ga, title, dpt }
 const cache = new Map();
+// The gateway's callbacks use the internal datapointId (e.g. "GA-334")
+// rather than the UUID exposed as the collection resource ID.
+const callbackCache = new Map();
 
 const PAGE_SIZE = 500;
 
@@ -57,6 +60,8 @@ export async function refreshDatapointCache() {
   let total = null;
   let loaded = 0;
   const next = new Map();
+  const nextCallbackCache = new Map();
+  let withoutCallbackId = 0;
 
   do {
     const payload = await fetchPage(token, pageNumber);
@@ -64,22 +69,44 @@ export async function refreshDatapointCache() {
     total = payload.meta?.collection?.total ?? items.length;
 
     for (const item of items) {
-      next.set(item.id, {
+      const meta = {
         id: item.id,
         ga: extractGa(item),
         title: item.attributes?.title ?? null,
         dpt: extractDpt(item),
-      });
+      };
+      next.set(item.id, meta);
+      const callbackId = item.attributes?.datapointId ?? item.meta?.datapointId;
+      if (callbackId != null) {
+        nextCallbackCache.set(String(callbackId), meta);
+      } else {
+        withoutCallbackId += 1;
+      }
+
+      logger.debug(`Datapoint-Cache-Eintrag: ${JSON.stringify({
+        resourceId: item.id,
+        callbackId: callbackId ?? null,
+        ga: meta.ga,
+        title: meta.title,
+        dpt: meta.dpt,
+      })}`);
     }
 
     loaded += items.length;
+    logger.debug(`Datapoint-Cache-Seite ${pageNumber}: ${items.length} Einträge geladen (${loaded}/${total})`);
     pageNumber += 1;
   } while (loaded < total);
 
   cache.clear();
   for (const [id, meta] of next) cache.set(id, meta);
+  callbackCache.clear();
+  for (const [id, meta] of nextCallbackCache) callbackCache.set(id, meta);
+  knownMissing.clear();
 
-  logger.info(`Datapoint-Metadaten-Cache aktualisiert: ${cache.size} Einträge`);
+  logger.info(
+    `Datapoint-Metadaten-Cache aktualisiert: UUID-Index=${cache.size}, ` +
+      `Callback-ID-Index=${callbackCache.size}, ohne Callback-ID=${withoutCallbackId}`,
+  );
 }
 
 /**
@@ -93,13 +120,13 @@ export function getAllDatapointIds() {
 }
 
 /**
- * Returns the known metadata for a datapoint ID (synchronous, bulk cache only).
+ * Returns known metadata by either the resource UUID or callback datapointId.
  * Falls back to the ID itself as "ga" if there is no match. Prefer
  * resolveDatapoint() for event processing (see below), which fetches missing
  * entries live.
  */
 export function lookupDatapoint(id) {
-  const hit = cache.get(id);
+  const hit = cache.get(id) ?? callbackCache.get(String(id));
   if (hit) return hit;
   return { id, ga: id, title: null, dpt: null };
 }
@@ -107,6 +134,7 @@ export function lookupDatapoint(id) {
 // IDs for which a live fetch has already failed (e.g. HTTP 404), so repeated
 // events for the same nonexistent ID do not trigger another failed request.
 const knownMissing = new Set();
+const inFlightFetches = new Map();
 
 async function fetchSingleDatapoint(id) {
   const token = await getAccessToken('read');
@@ -135,13 +163,26 @@ async function fetchSingleDatapoint(id) {
  * cache the result for future events.
  */
 export async function resolveDatapoint(id) {
-  const cached = cache.get(id);
+  const cached = cache.get(id) ?? callbackCache.get(String(id));
   if (cached) return cached;
 
   if (knownMissing.has(id)) {
     return { id, ga: id, title: null, dpt: null };
   }
 
+  const inFlight = inFlightFetches.get(id);
+  if (inFlight) return inFlight;
+
+  const fetchPromise = fetchAndCacheDatapoint(id);
+  inFlightFetches.set(id, fetchPromise);
+  try {
+    return await fetchPromise;
+  } finally {
+    inFlightFetches.delete(id);
+  }
+}
+
+async function fetchAndCacheDatapoint(id) {
   try {
     const item = await fetchSingleDatapoint(id);
     if (!item) {
@@ -156,7 +197,8 @@ export async function resolveDatapoint(id) {
       title: item.attributes?.title ?? null,
       dpt: extractDpt(item),
     };
-    cache.set(id, meta);
+    cache.set(item.id, meta);
+    callbackCache.set(String(id), meta);
     logger.info(`Datapoint ${id} per Live-Fetch nachgeladen und gecached: "${meta.title ?? '?'}"`);
     return meta;
   } catch (err) {

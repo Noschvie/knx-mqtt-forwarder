@@ -63,6 +63,10 @@ echten Rohtelegramm-Kopie. Siehe Abschnitt 9 für die spätere Erweiterung.
 
 Default: jeden im lokalen Datapoint-Cache bekannten Datapoint einzeln in der Subscription adressieren:
 
+Die `/datapoints`-Collection verwendet UUIDs als Resource-IDs. Der Gateway-Callback liefert dagegen die
+interne `datapointId` (z. B. `GA-334`) als Event-ID. Der Metadaten-Cache indexiert deshalb zusätzlich über
+`attributes.datapointId`; die UUID bleibt weiterhin die ID, die für die Subscription verwendet wird.
+
 ```json
 POST /subscriptions
 {
