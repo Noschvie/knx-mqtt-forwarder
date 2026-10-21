@@ -51,7 +51,7 @@ export const config = {
   },
   callback: {
     host: optional('CALLBACK_HOST', '0.0.0.0'),
-    port: Number(optional('CALLBACK_PORT', '8090')),
+    port: Number(optional('CALLBACK_PORT', '8070')),
     // Lokaler Pfad, auf dem der HTTP-Server lauscht. Default: aus
     // CALLBACK_PUBLIC_URL abgeleitet (im Normalfall identisch). Nur explizit
     // via CALLBACK_PATH überschreiben, wenn ein vorgeschalteter Reverse Proxy
