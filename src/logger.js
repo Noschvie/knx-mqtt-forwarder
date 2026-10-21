@@ -3,7 +3,7 @@ import { config } from './config.js';
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 const currentLevel = LEVELS[config.logLevel] ?? LEVELS.info;
 
-/** Lokaler ISO-8601-Zeitstempel inklusive UTC-Offset. */
+/** Local timestamp in YYYY-MM-DD HH:mm:ss.SSS format. */
 function localTimestamp() {
   const date = new Date();
   const pad = (value, length = 2) => String(value).padStart(length, '0');

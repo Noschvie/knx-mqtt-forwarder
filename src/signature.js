@@ -3,19 +3,18 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 
 /**
- * Prüft den X-Callback-Signature-Header gegen das konfigurierte Secret.
+ * Verifies the X-Callback-Signature header against the configured secret.
  *
  * Laut KNX IoT 3rd Party API Spec (Callback eventNotification):
  * "A base64 encoded HMAC-SHA256 signature as a concatenation of the entire
  * message request-line (including the CRLF), HTTP header values of Host,
  * Date, Content-Length, and the entire message body."
  *
- * HINWEIS: Die exakte Byte-für-Byte-Zusammensetzung (Trennzeichen zwischen
- * den Teilen, genaue Formatierung der Request-Line) ist in der Spec nicht
- * vollständig eindeutig spezifiziert. Diese Implementierung ist ein
- * bestmöglicher Nachbau und sollte gegen die tatsächliche
- * semantic-knx-gateway-Implementierung verifiziert werden, bevor die
- * Signaturprüfung produktiv scharf geschaltet wird (siehe README).
+ * NOTE: The exact byte-for-byte composition (separators between parts and
+ * precise request-line formatting) is not fully specified. This implementation
+ * is a best-effort reconstruction and should be verified against the actual
+ * semantic-knx-gateway implementation before enabling signature validation in
+ * production (see README).
  */
 export function verifyCallbackSignature({ method, url, httpVersion, headers, rawBody }) {
   const signatureHeader = headers['x-callback-signature'];

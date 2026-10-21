@@ -15,8 +15,8 @@ async function start() {
   await refreshDatapointCache();
   httpServer = await startCallbackServer();
 
-  // Rein informativ (Diagnose/Konfigurationshilfe) — hat keinen Einfluss mehr
-  // auf die Subscription selbst, siehe subscriptionManager.js.
+  // Informational only (diagnostics/configuration help); this no longer
+  // affects the subscription itself. See subscriptionManager.js.
   await logNodeInfo();
   await logInstallations();
 

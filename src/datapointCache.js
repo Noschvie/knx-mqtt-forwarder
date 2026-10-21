@@ -2,15 +2,15 @@ import { config } from './config.js';
 import { getAccessToken } from './oauthClient.js';
 import { logger } from './logger.js';
 
-// id (Datapoint-UUID) -> { ga, title, dpt }
+// id (datapoint UUID) -> { ga, title, dpt }
 const cache = new Map();
 
 const PAGE_SIZE = 500;
 
 function extractGa(item) {
-  // Fallback-Kette wie im bestehenden knx_subscribe.be-Skript: zuerst ein
-  // proprietäres meta.ga (falls das Gateway das liefert), dann die offizielle
-  // KIM-Property knx:groupAddress, sonst kein GA verfügbar.
+  // Use the same fallback order as the existing knx_subscribe.be script:
+  // first the proprietary meta.ga (if provided by the gateway), then the
+  // official KIM property knx:groupAddress, otherwise no GA is available.
   const meta = item.meta ?? {};
   const attrs = item.attributes ?? {};
   return meta.ga ?? attrs['knx:groupAddress'] ?? null;
@@ -47,9 +47,9 @@ async function fetchPage(token, pageNumber) {
 }
 
 /**
- * Lädt alle Datapoints einmalig (paginiert) und baut den lokalen
- * Metadaten-Cache auf. Wird beim Start sowie optional periodisch aufgerufen,
- * damit neue/umbenannte Datapoints berücksichtigt werden.
+ * Loads all datapoints once (paginated) and builds the local metadata cache.
+ * Called at startup and optionally on a schedule to account for new or
+ * renamed datapoints.
  */
 export async function refreshDatapointCache() {
   const token = await getAccessToken('read');
@@ -83,20 +83,20 @@ export async function refreshDatapointCache() {
 }
 
 /**
- * Liefert alle aktuell im Cache bekannten Datapoint-IDs — Basis für den
- * "all"-Subscription-Modus, der jeden Datapoint einzeln adressiert (siehe
- * subscriptionManager.js: das Gateway unterstützt Location-Level-Expand in
- * subscriptionDatapoints nicht, siehe docs/DESIGN.md).
+ * Returns all datapoint IDs currently known to the cache. This is the basis
+ * for "all" subscription mode, which addresses each datapoint individually
+ * (see subscriptionManager.js; the gateway does not support location-level
+ * expand in subscriptionDatapoints, see docs/DESIGN.md).
  */
 export function getAllDatapointIds() {
   return Array.from(cache.keys());
 }
 
 /**
- * Liefert die bekannten Metadaten zu einer Datapoint-ID (synchron, nur
- * Bulk-Cache). Fällt auf die blanke ID als "ga" zurück, falls kein Treffer da
- * ist. Für Event-Verarbeitung lieber resolveDatapoint() verwenden (siehe
- * unten), das bei einem Cache-Miss live nachlädt.
+ * Returns the known metadata for a datapoint ID (synchronous, bulk cache only).
+ * Falls back to the ID itself as "ga" if there is no match. Prefer
+ * resolveDatapoint() for event processing (see below), which fetches missing
+ * entries live.
  */
 export function lookupDatapoint(id) {
   const hit = cache.get(id);
@@ -104,9 +104,8 @@ export function lookupDatapoint(id) {
   return { id, ga: id, title: null, dpt: null };
 }
 
-// IDs, für die ein Live-Fetch bereits erfolglos war (z. B. HTTP 404) — um bei
-// wiederholten Events für dieselbe (tatsächlich nicht existierende) ID nicht
-// bei jedem Mal erneut erfolglos nachzufragen.
+// IDs for which a live fetch has already failed (e.g. HTTP 404), so repeated
+// events for the same nonexistent ID do not trigger another failed request.
 const knownMissing = new Set();
 
 async function fetchSingleDatapoint(id) {
@@ -129,11 +128,11 @@ async function fetchSingleDatapoint(id) {
 }
 
 /**
- * Wie lookupDatapoint(), aber mit Live-Fallback: Ist die ID nicht im
- * Bulk-Cache (z. B. weil /datapoints sie beim letzten Refresh nicht gelistet
- * hat, obwohl sie aktiv Bus-Events liefert — real beobachtet bei
- * semantic-knx-gateway), wird sie einzeln per GET /datapoints/{id}
- * nachgeladen und das Ergebnis für künftige Events gecached.
+ * Like lookupDatapoint(), but with a live fallback: if the ID is not in the
+ * bulk cache (e.g. because /datapoints did not list it on the last refresh,
+ * even though it actively produces bus events, as observed with
+ * semantic-knx-gateway), fetch it individually with GET /datapoints/{id} and
+ * cache the result for future events.
  */
 export async function resolveDatapoint(id) {
   const cached = cache.get(id);

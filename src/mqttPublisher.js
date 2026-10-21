@@ -36,10 +36,9 @@ export function connectMqtt() {
 }
 
 function topicFor(prefix, ga) {
-  // Flaches Topic: "4/2/35" -> "4-2-35", d. h. genau EINE Topic-Ebene pro GA
-  // (z. B. knx/state/4-2-35). Der Payload behält die GA im Originalformat.
-  // "+" und "#" sind in Topic-Namen unzulässig und werden vorsichtshalber
-  // ebenfalls ersetzt.
+  // Flatten the topic: "4/2/35" -> "4-2-35", i.e. exactly ONE topic level per
+  // GA (e.g. knx/state/4-2-35). The payload retains the original GA format.
+  // "+" and "#" are invalid in topic names and are replaced as a precaution.
   const flat = String(ga).replace(/[/+#]/g, '-');
   return `${prefix}/${flat}`;
 }

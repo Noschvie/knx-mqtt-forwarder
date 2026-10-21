@@ -16,20 +16,20 @@ function readRawBody(req) {
 
 async function handleEntry(entry) {
   if (entry.type !== 'datapoint') {
-    // node/installation-Events werden in v1 nicht auf MQTT gespiegelt,
-    // siehe Design-Dokument Abschnitt 3.
+    // Node/installation events are not mirrored to MQTT in v1; see section 3
+    // of the design document.
     logger.debug(`Event vom Typ "${entry.type}" ignoriert (id=${entry.id})`);
     return;
   }
 
-  // resolveDatapoint() prüft zuerst den Bulk-Cache und lädt bei einem Miss
-  // live per GET /datapoints/{id} nach (siehe datapointCache.js) — nötig,
-  // weil einzelne IDs real beobachtet nicht im Bulk-/datapoints-Katalog
-  // auftauchen, obwohl sie aktiv Events liefern.
+  // resolveDatapoint() checks the bulk cache first and fetches missing entries
+  // with GET /datapoints/{id} (see datapointCache.js). This is needed because
+  // some observed IDs do not appear in the bulk /datapoints catalog even
+  // though they actively produce events.
   const meta = await resolveDatapoint(entry.id);
   const attrs = entry.attributes ?? {};
-  // Fallback auf die Datapoint-ID, falls das Gateway keine GA liefert — sonst
-  // würde das Topic "knx/state/null" entstehen.
+  // Fall back to the datapoint ID if the gateway does not provide a GA;
+  // otherwise the topic would be "knx/state/null".
   const ga = meta.ga ?? entry.id;
 
   const payload = {
@@ -40,10 +40,10 @@ async function handleEntry(entry) {
     timestamp: attrs.timestamp ?? new Date().toISOString(),
   };
 
-  // Manche DPTs (z. B. 10.001 Uhrzeit, 11.001 Datum) liefern ein strukturiertes
-  // Objekt statt eines primitiven Werts — JSON.stringify statt direkter
-  // Interpolation, sonst "[object Object]" in der Log-Zeile (der tatsächliche
-  // MQTT-Payload war davon nie betroffen, da der dort ohnehin JSON-serialisiert wird).
+  // Some DPTs (e.g. 10.001 time, 11.001 date) return a structured object
+  // instead of a primitive value. Use JSON.stringify rather than direct
+  // interpolation to avoid "[object Object]" in the log (the MQTT payload is
+  // unaffected because it is already JSON-serialized).
   const valueStr = typeof payload.value === 'object' && payload.value !== null ? JSON.stringify(payload.value) : payload.value;
   logger.info(`CoV: "${meta.title ?? '?'}" (ga=${ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
 

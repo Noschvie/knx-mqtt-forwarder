@@ -20,10 +20,9 @@ async function getJson(path) {
 }
 
 /**
- * Fragt /node ab und loggt die wichtigsten Infos (Name, Vendor,
- * Subscription-Auslastung). Liefert die Node-ID zurück, die für
- * Subscriptions vom Typ "node" benötigt wird (laut Spec existiert die Node
- * nur als Einzelinstanz).
+ * Fetches /node and logs key information (name, vendor, subscription usage).
+ * Returns the node ID required for subscriptions of type "node" (the spec
+ * defines only a single node instance).
  */
 export async function logNodeInfo() {
   let payload;
@@ -51,9 +50,9 @@ export async function logNodeInfo() {
 }
 
 /**
- * Fragt /installations ab und loggt alle vorhandenen Installationen
- * (id + title) — rein informativ, u. a. um die passende
- * KNX_SUBSCRIPTION_TARGET_ID für TARGET_TYPE=installation zu finden.
+ * Fetches /installations and logs all available installations (id + title).
+ * This is informational only, e.g. to find the appropriate
+ * KNX_SUBSCRIPTION_TARGET_ID for TARGET_TYPE=installation.
  */
 export async function logInstallations() {
   let payload;

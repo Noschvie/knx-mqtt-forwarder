@@ -28,10 +28,10 @@ async function request(method, path, body, scope = 'manage') {
 
 function buildSubscriptionDatapointsItems() {
   if (config.knx.subscriptionMode === 'all') {
-    // WICHTIG: subscriptionDatapoints mit type "location" + expand wird vom
-    // Gateway trotz Spec-Beispiel NICHT unterstützt ("Invalid relationship
-    // type 'location'" — per Praxistest bestätigt). Daher jeden bekannten
-    // Datapoint einzeln adressieren, statt über eine Location zu kaskadieren.
+    // IMPORTANT: The gateway does NOT support subscriptionDatapoints with
+    // type "location" + expand despite the spec example ("Invalid relationship
+    // type 'location'", confirmed by testing). Address each known datapoint
+    // individually instead of cascading through a location.
     const ids = getAllDatapointIds();
     if (ids.length === 0) {
       logger.warn(
@@ -42,7 +42,7 @@ function buildSubscriptionDatapointsItems() {
     return ids.map((id) => ({ id, type: 'datapoint' }));
   }
 
-  // 'datapoint' (einzelnes Ziel)
+  // 'datapoint' (single target)
   return [{ id: config.knx.subscriptionTargetId, type: 'datapoint' }];
 }
 

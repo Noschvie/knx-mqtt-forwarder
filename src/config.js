@@ -13,11 +13,11 @@ function optional(name, fallback) {
   return value === undefined || value === '' ? fallback : value;
 }
 
-// KNX IoT 3rd Party API Basispfad (OpenAPI-Server-Variable "path").
-// Bewusst als Code-Konstante statt Env-Var: eine API-Versionsänderung ist ein
-// Code-/Kompatibilitäts-Thema, kein Deployment-Parameter. /oauth/access liegt
-// bei semantic-knx-gateway NICHT unter diesem Präfix (siehe knx_subscribe.be),
-// daher separat von KNX_API_PATH gehalten.
+// KNX IoT 3rd Party API base path (OpenAPI server variable "path").
+// Intentionally a code constant instead of an environment variable: changing
+// the API version is a code/compatibility concern, not a deployment parameter.
+// For semantic-knx-gateway, /oauth/access is NOT under this prefix (see
+// knx_subscribe.be), so it is kept separate from KNX_API_PATH.
 export const KNX_API_PATH = '/api/v2';
 
 const knxHostUrl = required('KNX_API_BASE_URL').replace(/\/+$/, '');
@@ -25,26 +25,26 @@ const callbackPublicUrl = required('CALLBACK_PUBLIC_URL');
 
 export const config = {
   knx: {
-    // Host-Root ohne Pfad, z. B. "https://eibesthal.local:3000"
+    // Host root without a path, e.g. "https://eibesthal.local:3000"
     hostUrl: knxHostUrl,
-    // Basis-URL für Resource-Endpoints (/datapoints, /subscriptions, ...)
+    // Base URL for resource endpoints (/datapoints, /subscriptions, ...)
     resourceBaseUrl: `${knxHostUrl}${KNX_API_PATH}`,
     clientId: required('KNX_OAUTH_CLIENT_ID'),
     clientSecret: required('KNX_OAUTH_CLIENT_SECRET'),
-    // Womit die Datapoint-Subscription (subscriptionDatapoints) adressiert wird:
-    // - "all" (Default): jeden im lokalen Cache bekannten Datapoint einzeln
-    //   adressieren (siehe datapointCache.js) -> deckt die komplette
-    //   Installation ab, ohne Location-IDs manuell pflegen zu müssen
-    // - "datapoint": ein einzelner Datapoint (KNX_SUBSCRIPTION_TARGET_ID)
-    // WICHTIG:
-    // - subscriptionNode/subscriptionInstallations liefern laut Spec nur
-    //   Node-/Installation-Metadaten-Changes, KEINE Datapoint-CoV-Events
-    //   (Aktor schalten). Für Datapoint-Events ist ausschließlich
-    //   subscriptionDatapoints relevant.
-    // - subscriptionDatapoints mit type "location" + expand ist laut Spec
-    //   vorgesehen, wird vom Gateway aber nachweislich NICHT unterstützt
-    //   ("Invalid relationship type 'location'"), daher kein "location"-Modus
-    //   mehr — siehe docs/DESIGN.md.
+    // How to address the datapoint subscription (subscriptionDatapoints):
+    // - "all" (default): address every datapoint in the local cache
+    //   individually (see datapointCache.js), covering the whole installation
+    //   without manually maintaining location IDs
+    // - "datapoint": a single datapoint (KNX_SUBSCRIPTION_TARGET_ID)
+    // IMPORTANT:
+    // - According to the spec, subscriptionNode/subscriptionInstallations
+    //   provide only node/installation metadata changes, NOT datapoint CoV
+    //   events (e.g. switching an actuator). Only subscriptionDatapoints is
+    //   relevant for datapoint events.
+    // - The spec allows subscriptionDatapoints with type "location" + expand,
+    //   but the gateway is confirmed NOT to support it ("Invalid relationship
+    //   type 'location'"), so there is no longer a "location" mode. See
+    //   docs/DESIGN.md.
     subscriptionMode: optional('KNX_SUBSCRIPTION_MODE', 'all'),
     subscriptionTargetId: optional('KNX_SUBSCRIPTION_TARGET_ID', ''),
     subscriptionLifetimeS: Number(optional('KNX_SUBSCRIPTION_LIFETIME_S', '3600')),
@@ -52,10 +52,10 @@ export const config = {
   callback: {
     host: optional('CALLBACK_HOST', '0.0.0.0'),
     port: Number(optional('CALLBACK_PORT', '8070')),
-    // Lokaler Pfad, auf dem der HTTP-Server lauscht. Default: aus
-    // CALLBACK_PUBLIC_URL abgeleitet (im Normalfall identisch). Nur explizit
-    // via CALLBACK_PATH überschreiben, wenn ein vorgeschalteter Reverse Proxy
-    // den Pfad umschreibt (öffentlicher Pfad != interner Pfad) — siehe README.
+    // Local path on which the HTTP server listens. By default, derived from
+    // CALLBACK_PUBLIC_URL (normally identical). Override explicitly via
+    // CALLBACK_PATH only if a reverse proxy rewrites the path (public path !=
+    // internal path). See README.
     path: optional('CALLBACK_PATH', new URL(callbackPublicUrl).pathname || '/callback'),
     publicUrl: callbackPublicUrl,
     secret: required('CALLBACK_SECRET'),

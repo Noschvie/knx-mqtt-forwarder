@@ -2,7 +2,7 @@ import http from 'node:http';
 import net from 'node:net';
 import aedes from 'aedes';
 
-// ── Mock MQTT-Broker (aedes) ────────────────────────────────────────────────
+// ── Mock MQTT broker (aedes) ────────────────────────────────────────────────
 const broker = aedes();
 const mqttServer = net.createServer(broker.handle);
 mqttServer.listen(18830, () => console.log('[mock] MQTT-Broker auf 18830'));
@@ -57,8 +57,8 @@ const gateway = http.createServer((req, res) => {
       });
     }
 
-    // Einzel-Datapoint-Fetch (Live-Fallback bei Cache-Miss) MUSS vor dem
-    // Collection-Handler geprüft werden, sonst matcht startsWith() beides.
+    // The single-datapoint fetch (live fallback on cache miss) MUST be checked
+    // before the collection handler, otherwise startsWith() matches both.
     if (req.method === 'GET' && req.url === '/api/v2/datapoints/dp-live-fetch-me') {
       return json(res, 200, {
         data: {
@@ -70,7 +70,7 @@ const gateway = http.createServer((req, res) => {
       });
     }
 
-    // Datapoint ohne GA-Angabe (Randfall: Topic darf nicht "null" enthalten)
+    // Datapoint without a GA (edge case: the topic must not contain "null")
     if (req.method === 'GET' && req.url === '/api/v2/datapoints/dp-no-ga') {
       return json(res, 200, {
         data: { id: 'dp-no-ga', type: 'datapoint', attributes: { title: 'Punkt ohne GA' } },
@@ -95,8 +95,8 @@ const gateway = http.createServer((req, res) => {
     if (req.method === 'POST' && req.url === '/api/v2/subscriptions') {
       console.log(`[mock] Subscription-Body: ${body}`);
 
-      // Spiegelt das reale Gateway-Verhalten: "location" wird trotz
-      // Spec-Beispiel als ungültiger relationship type abgelehnt.
+      // Mirrors actual gateway behavior: "location" is rejected as an invalid
+      // relationship type despite the spec example.
       const parsed = JSON.parse(body);
       const items = parsed?.data?.relationships?.subscriptionDatapoints?.data ?? [];
       const invalidType = items.find((item) => item.type !== 'datapoint');

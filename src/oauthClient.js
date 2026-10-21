@@ -1,11 +1,11 @@
 import { config } from './config.js';
 import { logger } from './logger.js';
 
-// Cache pro Scope-String, da die KNX IoT API separate Access Tokens je
-// angefragtem Scope ausgibt (siehe /oauth/access, grant_type=client_credentials).
+// Cache by scope string because the KNX IoT API issues separate access tokens
+// for each requested scope (see /oauth/access, grant_type=client_credentials).
 const tokenCache = new Map();
 
-// Sicherheitsabstand, bevor ein Token als abgelaufen gilt (Sekunden).
+// Safety margin, in seconds, before a token is considered expired.
 const EXPIRY_SAFETY_MARGIN_S = 30;
 
 function basicAuthHeader() {
@@ -40,9 +40,9 @@ async function requestToken(scope) {
 }
 
 /**
- * Liefert ein gültiges Access-Token für den angegebenen Scope (z. B. "read",
- * "manage", "read manage"). Holt bei Bedarf ein neues Token, cached bis kurz
- * vor Ablauf.
+ * Returns a valid access token for the requested scope (e.g. "read",
+ * "manage", "read manage"). Fetches a new token when needed and caches it
+ * until shortly before expiration.
  */
 export async function getAccessToken(scope) {
   const cached = tokenCache.get(scope);
