@@ -40,10 +40,8 @@ async function handleEntry(entry) {
     timestamp: attrs.timestamp ?? new Date().toISOString(),
   };
 
-  // Some DPTs (e.g. 10.001 time, 11.001 date) return a structured object
-  // instead of a primitive value. Use JSON.stringify rather than direct
-  // interpolation to avoid "[object Object]" in the log (the MQTT payload is
-  // unaffected because it is already JSON-serialized).
+  // Serialize object values to avoid "[object Object]" in the log.
+  // The MQTT payload is unaffected because it is already JSON-serialized.
   const valueStr = typeof payload.value === 'object' && payload.value !== null ? JSON.stringify(payload.value) : payload.value;
   logger.info(`CoV: "${meta.title ?? '?'}" (ga=${ga}, dpt=${meta.dpt ?? '?'}) = ${valueStr}`);
 
