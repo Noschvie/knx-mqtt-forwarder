@@ -13,7 +13,7 @@
     "node": ">=26"
   },
   "dependencies": {
-    "dotenv": "^18.0.8",
+    "dotenv": "^18.0.9",
     "mqtt": "^5.16.1"
   }
 }
